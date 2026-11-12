@@ -13,11 +13,7 @@ Modelo: `m·dv/dt = T − m·g − k·v`, `dy/dt = v` → `v' = 5,19 − 0,1·v`
 - Análisis del tamaño de paso y respuestas a las preguntas de reflexión.
 
 ## Ejecutar
-Abrir `index.html` en el navegador (no requiere instalación).
-
-## Publicar
-Subir `index.html`, `core.js` y `app.js` a un repositorio de GitHub y activar GitHub Pages
-(Settings → Pages → Branch: main / root).
+Abrir `index.html` en el navegador
 
 ## Resultados de verificación (h = 2 s, t = 20 s)
 | Método | v (m/s) | y (m) |
