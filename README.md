@@ -1,4 +1,5 @@
 # Euler en el Espacio 🚀
+Estudiante: Javier Averanga Quelka
 
 Simulación web del lanzamiento de un cohete experimental (Métodos Numéricos).
 
