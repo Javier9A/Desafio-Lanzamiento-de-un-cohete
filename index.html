@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Euler en el Espacio – Simulación de cohete</title>
+<style>
+  :root{--bg:#0b1020;--panel:#141b34;--panel2:#1b2447;--tx:#e8ecff;--mut:#9aa6d6;--acc:#ffb347;--euler:#ff6b6b;--heun:#4ecdc4;--rk4:#a78bfa;--exact:#ffffff;--line:#2a3566}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);line-height:1.5}
+  header{padding:28px 20px 18px;text-align:center;background:linear-gradient(180deg,#18225a,var(--bg))}
+  header h1{margin:0 0 6px;font-size:clamp(1.5rem,4vw,2.3rem)}
+  header p{margin:0;color:var(--mut)}
+  main{max-width:1150px;margin:0 auto;padding:0 16px 60px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}
+  h2{margin:0 0 12px;font-size:1.2rem;color:var(--acc)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mut);gap:4px}
+  input,select{background:var(--panel2);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font-size:1rem}
+  button{background:var(--acc);color:#222;border:0;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem}
+  button.sec{background:var(--panel2);color:var(--tx);border:1px solid var(--line)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .eq{background:var(--panel2);padding:12px 14px;border-radius:10px;font-family:ui-monospace,Consolas,monospace;font-size:.92rem;overflow-x:auto}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .tabs button{background:var(--panel2);color:var(--tx);border:1px solid var(--line);padding:7px 14px}
+  .tabs button.on{background:var(--acc);color:#222}
+  .tw{overflow-x:auto;max-height:430px;overflow-y:auto}
+  table{border-collapse:collapse;width:100%;font-size:.86rem;font-variant-numeric:tabular-nums}
+  th,td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{position:sticky;top:0;background:var(--panel2);color:var(--acc);text-align:center}
+  td:first-child,th:first-child{text-align:center}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .card{background:var(--panel2);border-radius:10px;padding:12px;border-left:4px solid var(--c,#fff)}
+  .card b{display:block;font-size:.8rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+  .card span{display:block;font-size:1.05rem}
+  .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+  canvas{width:100%;height:290px;background:var(--panel2);border-radius:10px}
+  .leg{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--mut);margin-top:8px}
+  .leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  details{background:var(--panel2);border-radius:10px;padding:10px 14px;margin:8px 0}
+  summary{cursor:pointer;font-weight:600}
+  .rocket{position:relative;height:120px;background:linear-gradient(180deg,#05071a,#1b2a6b);border-radius:10px;overflow:hidden}
+  .rocket .ground{position:absolute;bottom:0;left:0;right:0;height:10px;background:#3b2f1f}
+  #rk{position:absolute;bottom:10px;left:50%;font-size:2rem;transform:translateX(-50%)}
+  .note{color:var(--mut);font-size:.85rem}
+  .err{color:#ff8b8b}
+  footer{text-align:center;color:var(--mut);padding:20px;font-size:.8rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>🚀 Euler en el Espacio</h1>
+  <p>Simulación del lanzamiento de un cohete · Métodos Numéricos · Inspirado en <i>Talentos ocultos</i> (Friendship 7, 1962)</p>
+</header>
+<main>
+
+<section>
+  <h2>1. Modelo matemático</h2>
+  <div class="eq">m·dv/dt = T − m·g − k·v &nbsp;⇒&nbsp; dv/dt = T/m − g − (k/m)·v<br>dy/dt = v<br><span id="modelo"></span></div>
+  <p class="note">Segunda ley de Newton con tres fuerzas: empuje (↑), peso (↓) y resistencia del aire proporcional a la velocidad (opuesta al movimiento).</p>
+</section>
+
+<section>
+  <h2>2. Parámetros</h2>
+  <div class="grid" id="params"></div>
+  <div class="row">
+    <button id="run">▶ Ejecutar simulación</button>
+    <button class="sec" id="reset">↺ Valores del desafío</button>
+    <span class="note" id="msg"></span>
+  </div>
+</section>
+
+<section>
+  <h2>3. Resultados a t = t<sub>f</sub></h2>
+  <div class="cards" id="cards"></div>
+</section>
+
+<section>
+  <h2>4. Simulación animada</h2>
+  <div class="rocket"><div id="rk">🚀</div><div class="ground"></div></div>
+  <div class="row"><button class="sec" id="play">▶ Reproducir</button><span class="note" id="simInfo">t = 0 s · y = 0 m · v = 0 m/s</span></div>
+</section>
+
+<section>
+  <h2>5. Tablas de iteraciones y errores</h2>
+  <div class="tabs" id="tabs"></div>
+  <div class="tw"><table id="tbl"></table></div>
+  <p class="note">Error absoluto = |exacto − aproximado|. Error relativo en %.</p>
+</section>
+
+<section>
+  <h2>6. Gráficas</h2>
+  <div class="charts">
+    <div><canvas id="cV"></canvas></div>
+    <div><canvas id="cY"></canvas></div>
+    <div><canvas id="cEV"></canvas></div>
+    <div><canvas id="cEY"></canvas></div>
+  </div>
+  <div class="leg">
+    <span><i style="background:var(--exact)"></i>Exacta</span>
+    <span><i style="background:var(--euler)"></i>Euler</span>
+    <span><i style="background:var(--heun)"></i>Heun</span>
+    <span><i style="background:var(--rk4)"></i>RK4</span>
+  </div>
+</section>
+
+<section>
+  <h2>7. Influencia del tamaño de paso (error en t = t<sub>f</sub>)</h2>
+  <div class="tw"><table id="hTbl"></table></div>
+  <p class="note" id="hNote"></p>
+</section>
+
+<section>
+  <h2>8. Solución analítica</h2>
+  <div class="eq" id="analitica"></div>
+</section>
+
+<section>
+  <h2>9. Interpretación y conclusiones</h2>
+  <div id="concl"></div>
+</section>
+
+<section>
+  <h2>10. Preguntas de reflexión</h2>
+  <details open><summary>1. ¿Por qué era importante verificar los cálculos antes de enviar astronautas al espacio?</summary>
+    <p>Porque un error numérico en la trayectoria se traduce en una órbita o un reingreso equivocados, y con una vida humana a bordo no hay segunda oportunidad. Las computadoras de la época eran poco confiables, por lo que John Glenn pidió que Katherine Johnson verificara a mano los resultados antes de despegar. Comparar la aproximación con una solución exacta, como hace esta app, es la versión moderna de esa verificación.</p></details>
+  <details><summary>2. ¿Qué riesgos existirían al utilizar un tamaño de paso demasiado grande?</summary>
+    <p>El error de truncamiento crece con h (en Euler es proporcional a h), así que la velocidad y la altura se desvían de la realidad. Además, para dv/dt = a − c·v el método de Euler es inestable si h·c &gt; 2, es decir, h &gt; 20 s con estos datos: la solución oscilaría y divergiría aunque el sistema real sea estable. Se puede comprobar en la sección 7 y subiendo h en los parámetros.</p></details>
+  <details><summary>3. ¿Por qué una aproximación puede parecer razonable y aun así acumular errores importantes?</summary>
+    <p>Cada paso introduce un error pequeño, pero el siguiente paso parte del valor ya erróneo, de modo que los errores se acumulan. Además la altura se obtiene integrando la velocidad, por lo que el error de v se propaga a y: en la tabla el error de altura (≈14,5 m) es mucho mayor que el de velocidad (≈1,45 m/s) aunque el porcentaje parezca pequeño.</p></details>
+  <details><summary>4. ¿Qué variables reales del lanzamiento no fueron consideradas en nuestro modelo?</summary>
+    <p>Pérdida de masa por consumo de combustible, empuje variable, densidad del aire decreciente con la altura y resistencia proporcional a v² (no solo a v), gravedad que disminuye con la altitud, viento, inclinación de la trayectoria (gravity turn), rotación terrestre, separación de etapas y control de guiado.</p></details>
+  <details><summary>5. ¿Por qué el cálculo de una trayectoria lunar requiere un modelo mucho más complejo?</summary>
+    <p>Es un problema tridimensional con varios cuerpos (Tierra, Luna, Sol) donde la gravedad varía con la distancia, los sistemas de referencia se mueven y hay maniobras de corrección. Las ecuaciones no tienen solución analítica cerrada, por lo que exigen métodos numéricos de alto orden, pasos adaptativos y una precisión mucho mayor, ya que un error pequeño al inicio se amplifica a lo largo de cientos de miles de kilómetros.</p></details>
+</section>
+
+</main>
+<footer>Métodos Numéricos · Método de Euler, Heun y Runge-Kutta 4 · Hecho con JavaScript puro (sin dependencias)</footer>
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
